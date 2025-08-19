@@ -1,10 +1,12 @@
+import "dotenv/config.js";
 import fs from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { writeFile } from "fs/promises";
-import config from "./config.js";
 
-const STATE_FILE = path.resolve(config.PUBLIC_DIR, config.STATE_FILE_NAME);
+const PUBLIC_DIR = path.resolve(process.cwd(), process.env.PUBLIC_DIR || "public");
+const STATE_FILE = path.resolve(PUBLIC_DIR, "snapbug-state.json");
+const JSON_INDENTATION = parseInt(process.env.JSON_INDENTATION || "2", 10);
 
 async function fileExists(filePath) {
   try {
@@ -41,7 +43,7 @@ export async function saveStateToFile(newEntry) {
 
     newEntry.id = uuidv4();
 
-    await fs.writeFile(STATE_FILE, JSON.stringify(dataToSave, null, config.JSON_INDENTATION));
+    await fs.writeFile(STATE_FILE, JSON.stringify(dataToSave, null, JSON_INDENTATION));
     console.log("파일 저장에 성공했습니다.", newEntry);
 
     return dataToSave;
@@ -62,7 +64,7 @@ export async function getStateHistory() {
       return [];
     }
   } catch (err) {
-    console.error("상태 파일 조회 오류");
+    console.error("상태 파일 조회 오류", err);
     return [];
   }
 }
