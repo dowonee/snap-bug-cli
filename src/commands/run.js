@@ -1,15 +1,13 @@
+import "dotenv/config.js";
 import path from "path";
 import fs from "fs/promises";
 import { existsSync } from "fs";
 import { runCommand } from "../utils/util.js";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
-import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-
 const require = createRequire(import.meta.url);
 
 const exitWithError = (message) => {
@@ -52,29 +50,70 @@ export async function run({ deploy }) {
     exitWithError("snap-bug-client 패키지 경로를 찾을 수 없습니다.");
   }
 
+  const packageJsonPath = path.join(clientPath, "package.json");
+  const viteConfigPath = path.join(clientPath, "vite.config.js");
   const distPath = path.join(clientPath, "dist");
   const localStatePath = path.resolve(__dirname, "../../public/snapbug-state.json");
   const distStatePath = path.join(distPath, "snapbug-state.json");
+
+  let hasBuildScript = false;
+  let isVite = false;
+
+  try {
+    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
+    hasBuildScript = !!packageJson.scripts?.build;
+  } catch {
+    exitWithError("snap-bug-client의 package.json을 읽을 수 없습니다.");
+  }
+
+  if (!hasBuildScript) {
+    exitWithError("snap-bug-client에 'build' 스크립트가 정의되어 있지 않습니다.");
+  }
+
+  if (existsSync(viteConfigPath)) isVite = true;
+
+  if (isVite) {
+    const vitePath = path.join(clientPath, "node_modules", ".bin", "vite");
+
+    if (!existsSync(vitePath) || !existsSync(path.join(distPath, "index.html"))) {
+      console.warn("Vite 프로젝트로 감지되어 자동 빌드를 시도합니다.");
+
+      try {
+        await runCommand("npm", ["install"], { cwd: clientPath });
+        await runCommand("npm", ["run", "build"], { cwd: clientPath });
+        console.log("Vite 빌드 완료!");
+      } catch (err) {
+        exitWithError(`Vite 자동 빌드 실패: ${err.message}`);
+      }
+    }
+  }
+
+  const isBuilt = existsSync(distPath) && existsSync(path.join(distPath, "index.html"));
+
+  if (!isBuilt) {
+    console.log("⚠️ 디버깅 UI 빌드가 완료되지 않았습니다.");
+    console.log(
+      "아래 명령어 중 본인 프로젝트 환경에 맞는 명령어를 수동으로 실행한 뒤 다시 시도해주세요.\n"
+    );
+
+    if (!isVite) {
+      console.log(`[CRA 기반 예시]`);
+      console.log(`cd ${clientPath}`);
+      console.log(`npm install`);
+      console.log(`npm run build\n`);
+      console.log(`[Webpack 수동 설정 예시]`);
+      console.log(`cd ${clientPath}`);
+      console.log(`npm install`);
+      console.log(`npx webpack --config webpack.config.js\n`);
+    }
+
+    exitWithError("빌드 완료 후 다시 'snapbug run' 명령어를 실행해주세요.");
+  }
 
   if (!existsSync(localStatePath)) {
     exitWithError(
       "상태 추적 데이터(snapbug-state.json)가 없습니다. 먼저 상태 기록을 실행해주세요."
     );
-  }
-
-  try {
-    const vitePath = path.join(clientPath, "node_modules", ".bin", "vite");
-
-    console.log("디버깅 UI 빌드 중...");
-
-    if (!existsSync(vitePath)) {
-      console.warn("vite가 설치되지 않았습니다. 의존성을 설치합니다...");
-      await runCommand("npm", ["install"], { cwd: clientPath });
-      await runCommand("npm", ["run", "build"], { cwd: clientPath });
-      console.log("빌드 완료!");
-    }
-  } catch (err) {
-    exitWithError(`빌드 실패: ${err.message}`);
   }
 
   try {
