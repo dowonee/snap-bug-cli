@@ -14,7 +14,6 @@
     "commander": "^13.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2",
     "snap-bug-client": "^0.0.1",
     "snapbug": "^1.0.7",
     "snapbug-client-ui": "^0.0.4",
@@ -24,17 +23,14 @@
     "prepare": "husky",
     "format": "prettier --cache --write .",
     "lint": "eslint .",
-    "start": "node src/server/server.js",
     "run": "node ./bin/index.js run --client-path=../snap-bug-client"
   },
   "devDependencies": {
-    "eslint": "^8.57.1",
-    "eslint-js": "github:eslint/js",
-    "eslint-plugin-n": "16.6.2",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-promise": "^6.6.0",
-    "eslint-config-standard": "^17.1.0",
     "husky": "9.1.7",
-    "prettier": "3.5.3"
+    "prettier": "3.5.3",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.2.6"
   }
 }
